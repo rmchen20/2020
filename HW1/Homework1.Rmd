@@ -111,8 +111,9 @@ b. **What is the breakdown of male and female children in the dataset?**
 
 ```{r problem3b}
 # your code here
-sum(GaltonFamilies["gender"] == "male")
-sum(GaltonFamilies["gender"] == "female")
+GaltonFamilies %>%
+  group_by(gender) %>%
+  summarize(number = n())
 ```
 
 c. **How many observations are in Galton's dataset? Please answer this
@@ -133,12 +134,19 @@ mean(GaltonFamilies[GaltonFamilies["childNum"]==1, "childHeight"])
 e. **Create a table showing the mean height for male and female children.**
 ```{r problem3e}
 # your code here
+GaltonFamilies %>%
+  group_by(gender) %>%
+  summarize(avgHeight = mean(childHeight))
 ```
 
 f. **What was the average number of children each family had?**
 
 ```{r problem3f}
 # your code here
+GaltonFamilies %>%
+  group_by(family) %>%
+  summarize(children = mean(children)) %>%
+  summarize(avgChildren = mean(children, na.rm = TRUE))
 ```
 
 g. **Convert the children's heights from inches to centimeters and store
@@ -147,6 +155,10 @@ Show the first few rows of this dataset.**
 
 ```{r problem3g}
 # your code here
+GaltonFamilies <- mutate(GaltonFamilies,
+  childHeight_cm = childHeight * 2.54
+)
+head(GaltonFamilies)
 ```
 
 
@@ -186,12 +198,19 @@ However, please do run your final code on the whole dataset.
 
 ```{r cor, cache = TRUE}
 # your code here
+sim_corr <- sim_data %>%
+  group_by(group) %>%
+  summarize(correlation = cor(X, Y)) %>%
+  arrange(desc(correlation))
+
+head(sim_corr)
 ```
 
 b. **The highest correlation is around 0.8. Can you explain why we see
 such a high correlation when X and Y are supposed to be independent and
 thus uncorrelated?**
 
+X and Y are supposed to be independent, but that is when we consider the entire dataset as a whole. When we are randomly creating groups chosen from the dataset, this randomness can lead to the two variables creating what seems to be a causal or correlated relationship, but really only results from coincidental similar movement. This spurious correlation is often caused by small sample sizes, as well as the fact that we are choosing as many as 100000 random groups, which can increase variability in random correlation.
 
 # Part III: Plotting
 
@@ -202,6 +221,13 @@ you found in Problem 4.**
 
 ```{r problem5}
 # your code here
+sim_data %>% 
+  filter(group == sim_corr[[1,1]]) %>%
+  ggplot(aes(x = X, y = Y)) +
+  geom_point(color = "hotpink") +
+  ggtitle(paste0("Relationship between X and Y for Group ", sim_corr[[1,1]])) +
+  xlab("X") +
+  ylab("Y")
 ```
 
 Grading: 1pt.
@@ -226,6 +252,7 @@ a. **Compute the overall correlation between X and Y.**
 
 ```{r problem6a}
 # your code here
+cor(dat["X"], dat["Y"])
 ```
 
 b. **Make a plot showing the relationship between X and Y. Comment on
@@ -233,14 +260,23 @@ the correlation that you see.**
 
 ```{r problem6b}
 # your code here
+dat %>%
+  ggplot(aes(x = X, y = Y)) +
+  geom_point(color = "hotpink") +
+  ggtitle("Relationship between X and Y") +
+  xlab("X") +
+  ylab("Y")
 ```
 
-Your text answer here.
+It appears that there is a relatively significant negative correlation between X and Y—that is, as X increases, Y tends to decrease in a relatively linear fashion. However, the range and variability around this linear decrease is also quite wide.
 
 c. **Compute the correlations between X and Y for each level of Z.**
 
 ```{r problem6c}
 # your code here
+dat %>%
+  group_by(Z) %>%
+  summarize(correlation = cor(X, Y))
 ```
 
 d. **Make a plot showing the relationship between X and Y, but this
@@ -249,21 +285,27 @@ especially any differences between this plot and the previous plot.**
 
 ```{r problem6d}
 # your code here
+dat %>%
+  ggplot(aes(x = X, y = Y, color = Z)) +
+  geom_point() +
+  ggtitle("Relationship between X and Y for every Z") +
+  xlab("X") +
+  ylab("Y")
 ```
 
-Your text answer here.
+Interestingly, plotting based on Z groups gives a very different result from our previous plot. In our previous plot, we inferred a correlation between X and Y that is solidly negative, and reflects a decrease in Y as X increases. In this plot, however, we can see that within each Z group, there is actually a solidly positive correlation. That is, when Z remains the same, as X increases, Y increases. This positive correlation was obscured when we no longer consider the Z value, turning into a negative correlation. This is reflective of our previous problem on spurious correlation, where correlation over the entire dataset may be different from the correlation for smaller groups selected from the larger dataset.
 
 
 # Part IV: Bash practices
 
-## Problem 7: Bash practices on Odyessy
+## Problem 7: Bash practices on Odyssey
 
 Please answer the following question using bash commands and include those in 
 your answer. Data are available at `/n/stats115/2020/HW1/public_MC3.maf`
 
 Mutation Annotation Format ([MAF](https://docs.gdc.cancer.gov/Data/File_Formats/MAF_Format/)) is a tab-delimited text file with aggregated mutation information. `public_MC3.maf`
 is a curated list of [somatic mutation](https://www.britannica.com/science/somatic-mutation) 
-occured in many patients. Since a complete MAF file contains far mroe 
+occured in many patients. Since a complete MAF file contains far more 
 information than we need, in this problem we will focus on part of it.
 
 ```
@@ -295,13 +337,21 @@ has appeared?
 
 ```{r engine="bash", eval=FALSE}
 # your bash command
+cat FILE | wc -l
+
+grep -c "KRAS" FILE
 ```
 
 b. How many unique `Variant_Classification` are there in the MAF? Please 
-count occurence of each type and sort them. Which one is the most frequent? 
+count occurrence of each type and sort them. Which one is the most frequent? 
 
 ```{r engine="bash", eval=FALSE}
 # your bash command
+cut -f "Variant_Classification" FILE
+    | sort
+    | uniq -c
+    | sort -r -k1 -n
+    | awk '{print $2" "$1}'
 ```
 
 c. What are the top FIVE most frequent genes? Please provide 
@@ -312,6 +362,7 @@ choose? Why?
 
 ```{r engine="bash", eval=FALSE}
 # your bash command
+cut -f "Hugo_Symbol" FILE
 ```
 
 Equivalent python command:
@@ -404,7 +455,7 @@ Please provide text answer here.
 
 # Part VII: Dynamic programming with Python
 
-## Problem 10 Dyanic Programming
+## Problem 10 Dynamic Programming
 
 Given a list of finite integer numbers: e.g. -2, 1, 7, -4, 5, 2, -3, -6, 4, 3, 
 -8, -1, 6, -7, -9, -5.
