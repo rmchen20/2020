@@ -78,7 +78,6 @@ mean(x1_na)
 
 ```{r problem2}
 # your code here
-mean(x1_na, na.rm=TRUE)
 ```
 
 
@@ -104,15 +103,12 @@ a. **Please report the height of the 10th child in the dataset.**
 
 ```{r problem3a}
 # your code here
-GaltonFamilies[10,'childHeight']
 ```
 
 b. **What is the breakdown of male and female children in the dataset?**
 
 ```{r problem3b}
 # your code here
-sum(GaltonFamilies["gender"] == "male")
-sum(GaltonFamilies["gender"] == "female")
 ```
 
 c. **How many observations are in Galton's dataset? Please answer this
@@ -120,14 +116,12 @@ question without consulting the R help.**
 
 ```{r problem3c}
 # your code here
-nrow(GaltonFamilies)
 ```
 
 d. **What is the mean height for the 1st child in each family?**
 
 ```{r problem3d}
 # your code here
-mean(GaltonFamilies[GaltonFamilies["childNum"]==1, "childHeight"])
 ```
 
 e. **Create a table showing the mean height for male and female children.**
