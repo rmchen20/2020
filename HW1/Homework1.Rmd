@@ -337,9 +337,9 @@ has appeared?
 
 ```{r engine="bash", eval=FALSE}
 # your bash command
-cat FILE | wc -l
+cat 'public_MC3.maf' | wc -l
 
-grep -c "KRAS" FILE
+grep -c "KRAS" 'public_MC3.maf'
 ```
 
 b. How many unique `Variant_Classification` are there in the MAF? Please 
@@ -347,11 +347,10 @@ count occurrence of each type and sort them. Which one is the most frequent?
 
 ```{r engine="bash", eval=FALSE}
 # your bash command
-cut -f "Variant_Classification" FILE
+cut -f 'Variant_Classification' 'public_MC3.maf'
     | sort
     | uniq -c
     | sort -r -k1 -n
-    | awk '{print $2" "$1}'
 ```
 
 c. What are the top FIVE most frequent genes? Please provide 
