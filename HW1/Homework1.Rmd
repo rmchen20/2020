@@ -1,8 +1,10 @@
 ---
 title: "STAT115 Homework 1"
-author: ""
+author: ''
 date: "January 28, 2020"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -347,11 +349,12 @@ count occurrence of each type and sort them. Which one is the most frequent?
 
 ```{r engine="bash", eval=FALSE}
 # your bash command
-cut -f 'Variant_Classification' 'public_MC3.maf'
-    | sort
-    | uniq -c
-    | sort -r -k1 -n
+cut -f 4 'public_MC3.maf' | sort -u | wc -l
+
+cut -f 4 'public_MC3.maf' | sort | uniq -c | sort -nr
 ```
+
+Missense mutations are the most frequent kind of variant classification.
 
 c. What are the top FIVE most frequent genes? Please provide 
 the bash command and equivalent Python command. If you are a PI 
@@ -361,16 +364,19 @@ choose? Why?
 
 ```{r engine="bash", eval=FALSE}
 # your bash command
-cut -f "Hugo_Symbol" FILE
+cut -f 3 'public_MC3.maf' | sort | uniq -c | sort -nr | head -5
 ```
 
 Equivalent python command:
 
 ```{r engine="python", eval=FALSE}
 # your python command
+
 ```
 
 Your text answer:
+
+I would likely pick TTN. TTN has the most variant classifications in our data, which suggests that changes in TTN would be relatively more biologically significant since it would occur more often.
 
 d. Write a bash program that determines whether a user-input year ([YYYY]) is 
 a leap year or not (Definition: multiples of four with the exception of 
@@ -379,6 +385,21 @@ or interactive.
 
 ```{r engine="bash", eval=FALSE}
 # your bash command
+echo -n "Enter year (yyyy) : "
+read year
+
+if [[ $((year % 400)) -eq 0]]
+then
+  echo "$year is a leap year."
+elif [[ $((year % 100)) -eq 0 ]]
+then
+  echo "$year is not a leap year."
+elif [[ $((year % 4)) -eq 0 ]]
+then
+  echo "$year is a leap year."
+else
+  echo "$year is not a leap year."
+fi
 ```
 
 
@@ -421,6 +442,7 @@ mappable and uniquely mappable. How many rows are in each output SAM files?
 
 ```{r engine="bash", eval=FALSE}
 # please copy your bash script here
+
 ```
 
 Please provide text answer here.
