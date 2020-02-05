@@ -303,7 +303,7 @@ Interestingly, plotting based on Z groups gives a very different result from our
 ## Problem 7: Bash practices on Odyssey
 
 Please answer the following question using bash commands and include those in 
-your answer. Data are available at `/n/stats115/2020/HW1/public_MC3.maf`
+your answer. Data are available at `/n/stat115/2020/HW1/public_MC3.maf`
 
 Mutation Annotation Format ([MAF](https://docs.gdc.cancer.gov/Data/File_Formats/MAF_Format/)) is a tab-delimited text file with aggregated mutation information. `public_MC3.maf`
 is a curated list of [somatic mutation](https://www.britannica.com/science/somatic-mutation) 
@@ -339,9 +339,10 @@ has appeared?
 
 ```{r engine="bash", eval=FALSE}
 # your bash command
-cat 'public_MC3.maf' | wc -l
+FILE_NAME="/n/stat115/2020/HW1/public_MC3.maf"
+cat "$FILE_NAME" | wc -l
 
-grep -c "KRAS" 'public_MC3.maf'
+grep -c "KRAS" "$FILE_NAME"
 ```
 
 b. How many unique `Variant_Classification` are there in the MAF? Please 
@@ -349,9 +350,10 @@ count occurrence of each type and sort them. Which one is the most frequent?
 
 ```{r engine="bash", eval=FALSE}
 # your bash command
-cut -f 4 'public_MC3.maf' | sort -u | wc -l
+FILE_NAME="/n/stat115/2020/HW1/public_MC3.maf"
+cut -f 4 "$FILE_NAME" | sort -u | wc -l
 
-cut -f 4 'public_MC3.maf' | sort | uniq -c | sort -nr
+cut -f 4 "$FILE_NAME" | sort | uniq -c | sort -nr
 ```
 
 Missense mutations are the most frequent kind of variant classification.
@@ -364,19 +366,26 @@ choose? Why?
 
 ```{r engine="bash", eval=FALSE}
 # your bash command
-cut -f 3 'public_MC3.maf' | sort | uniq -c | sort -nr | head -5
+FILE_NAME="/n/stat115/2020/HW1/public_MC3.maf"
+cut -f 3 "$FILE_NAME" | sort | uniq -c | sort -nr | head -5
 ```
 
 Equivalent python command:
 
 ```{r engine="python", eval=FALSE}
 # your python command
+with open('/n/stat115/2020/HW1/public_MC3.maf') as f:
+    lines = [line.rstrip().split('\t')[2] for line in f]
 
+from collections import Counter
+cc = Counter(lines)
+
+sorted(range(len(cc.values())), key=lambda i: cc.values()[i])[-5:]
 ```
 
 Your text answer:
 
-I would likely pick TTN. TTN has the most variant classifications in our data, which suggests that changes in TTN would be relatively more biologically significant since it would occur more often.
+I would likely pick TTN. TTN has the most variant classifications in our data, which suggests that changes in TTN would be relatively more biologically significant since it is more likely to mutate.
 
 d. Write a bash program that determines whether a user-input year ([YYYY]) is 
 a leap year or not (Definition: multiples of four with the exception of 
@@ -388,7 +397,7 @@ or interactive.
 echo -n "Enter year (yyyy) : "
 read year
 
-if [[ $((year % 400)) -eq 0]]
+if [[ $((year % 400)) -eq 0 ]]
 then
   echo "$year is a leap year."
 elif [[ $((year % 100)) -eq 0 ]]
@@ -412,7 +421,7 @@ correspondence to the two reads from the same fragment. Read mapping
 could take a long time, so we have created just two FASTQ files of one
 RNA-seq sample with only 1M fragments (three 2 X 1M reads) for you to run STAR
 instead of the full data. The files are located at
-`/n/stat115/2020/HW1/loop/`. 
+`/n/stat115/2020/HW1/loop/`.
 
 ```
 loop
@@ -432,7 +441,7 @@ answers.
 
 a. Use BWA (Li & Durbin, Bioinformatics 2009) to map the reads to the
 Hg38 version of the reference genome, available on Odyssey at
-`/n/stat115/2020/HW1/hg38.fasta`. 
+`/n/stat115/2020/HW1/hg38.fasta`.
 
 In `/n/stat115/2020/HW1/BWA/loop`, you are provided with three `.fastq` files/
 Write a for loop in bash to align the paired-end reads to the reference using 
@@ -443,15 +452,35 @@ mappable and uniquely mappable. How many rows are in each output SAM files?
 ```{r engine="bash", eval=FALSE}
 # please copy your bash script here
 
+/n/home02/stat115u20063/hw1
+
+
+
+# align each end separately
+bwa aln ref.fasta read1.fastq > read1.sai
+bwa aln ref.fasta read2.fastq > read2.sai
+
+# stick everything in a SAM file
+bwa sampe ref.fasta read1.sai read2.sai read1.fastq read2.fastq > aln-pe.sam
+
+# count number of aligned reads, etc.
+samtools flagstat aln-pe.sam
+
+# count number of uniquely mapped reads
+samtools view -h aln_pe.sam | grep -v -e 'XA:Z:'  -e 'SA:Z:'| samtools view -F 0x900 -f 0x2 -q 5| wc -l
 ```
 
 Please provide text answer here.
+
+
 
 b. Use slurm to submit the same BWA alignment jobs onto cluster for `A_r.fastq` 
 and `A_l.fastq`. Please copy the content of your `sbatch` file here.
 
 ```{r engine="bash", eval=FALSE}
 # please copy your sbatch file here
+
+
 ```
 
 ## Problem 9: STAR alignment
