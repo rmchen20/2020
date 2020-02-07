@@ -441,9 +441,9 @@ answers.
 
 a. Use BWA (Li & Durbin, Bioinformatics 2009) to map the reads to the
 Hg38 version of the reference genome, available on Odyssey at
-`/n/stat115/2020/HW1/hg38.fasta`.
+`/n/stat115/2020/HW1/bwa_hg38_index/hg38.fasta`.
 
-In `/n/stat115/2020/HW1/BWA/loop`, you are provided with three `.fastq` files/
+In `/n/stat115/2020/HW1/loop`, you are provided with three `.fastq` files/
 Write a for loop in bash to align the paired-end reads to the reference using 
 BWA on a compute node. Use the PE alignment mode and generate the output in 
 SAM format. Use SAMTools on the output to find out how many fragments are 
@@ -452,27 +452,39 @@ mappable and uniquely mappable. How many rows are in each output SAM files?
 ```{r engine="bash", eval=FALSE}
 # please copy your bash script here
 
-/n/home02/stat115u20063/hw1
+REF_FILE="/n/stat115/2020/HW1/bwa_hg38_index/hg38.fasta"
+READ_FILE="/n/stat115/2020/HW1/loop"
 
+module load bwa/0.7.15-fasrc02
+module load samtools/1.5-fasrc02
 
+# loop over the three
+for f in A B C
+do
+	# align each end separately
+	bwa aln $REF_FILE $READ_FILE/${f}_l.fastq > ${f}_l.sai
+	bwa aln $REF_FILE $READ_FILE/${f}_r.fastq > ${f}_r.sai
 
-# align each end separately
-bwa aln ref.fasta read1.fastq > read1.sai
-bwa aln ref.fasta read2.fastq > read2.sai
+	# stick everything in a SAM file
+	bwa sampe $REF_FILE ${f}_l.sai ${f}_r.sai $READ_FILE/${f}_l.fastq $READ_FILE/${f}_r.fastq > ${f}-aln-pe.sam
 
-# stick everything in a SAM file
-bwa sampe ref.fasta read1.sai read2.sai read1.fastq read2.fastq > aln-pe.sam
+	# count number of aligned reads, etc.
+	samtools flagstat ${f}-aln-pe.sam
 
-# count number of aligned reads, etc.
-samtools flagstat aln-pe.sam
+	# count number of uniquely mapped reads
+	samtools view -h ${f}-aln-pe.sam | grep -v -e 'XA:Z:'  -e 'SA:Z:'| samtools view -F 0x900 -f 0x2 -q 5| wc -l
+done
 
-# count number of uniquely mapped reads
-samtools view -h aln_pe.sam | grep -v -e 'XA:Z:'  -e 'SA:Z:'| samtools view -F 0x900 -f 0x2 -q 5| wc -l
+srun --pty -p test -t 45 --mem 6000 /bin/bash submit.sh
 ```
 
 Please provide text answer here.
 
+A: 1900632 mapped, unique: 1028780
+B: 1900322 mapped, unique: 1028085
+C: 1900666 mapped, unique: 1028016
 
+There are 2000026 rows in each of the output SAM files.
 
 b. Use slurm to submit the same BWA alignment jobs onto cluster for `A_r.fastq` 
 and `A_l.fastq`. Please copy the content of your `sbatch` file here.
@@ -480,6 +492,25 @@ and `A_l.fastq`. Please copy the content of your `sbatch` file here.
 ```{r engine="bash", eval=FALSE}
 # please copy your sbatch file here
 
+#!/bin/bash
+#SBATCH -n 1 # Number of cores requested
+#SBATCH -N 1 # Ensure that all cores are on one machine
+#SBATCH -t 45 # Runtime in minutes
+#SBATCH -p serial_requeue # Partition to submit to
+#SBATCH --mem=6G # Memory in GB (see also --mem-per-cpu)
+#SBATCH -o output_bwa.out # Standard out goes to this file
+#SBATCH -e error_bwa.err # Standard err goes to this file
+
+REF_FILE="/n/stat115/2020/HW1/bwa_hg38_index/hg38.fasta"
+READ_FILE="/n/stat115/2020/HW1/loop"
+
+module load bwa/0.7.15-fasrc02
+module load samtools/1.5-fasrc02
+
+bwa aln $REF_FILE $READ_FILE/A_l.fastq > A_l.sai
+bwa aln $REF_FILE $READ_FILE/A_r.fastq > A_r.sai
+
+bwa sampe $REF_FILE A_l.sai A_r.sai $READ_FILE/A_l.fastq $READ_FILE/A_r.fastq > A-aln-pe.sam
 
 ```
 
@@ -494,14 +525,34 @@ How many fragments are mappable and how many are uniquely mappable?
 
 ```{r engine="bash", eval=FALSE}
 # please copy your sbatch file here
+
+#!/bin/bash
+#SBATCH -n 1 # Number of cores requested
+#SBATCH -N 1 # Ensure that all cores are on one machine
+#SBATCH -t 30 # Runtime in minutes
+#SBATCH -p serial_requeue # Partition to submit to
+#SBATCH --mem=32G # Memory in GB (see also --mem-per-cpu)
+#SBATCH -o output_star.out # Standard out goes to this file
+#SBATCH -e error_star.err # Standard err goes to this file
+
+STAR_FILE="/n/stat115/2020/HW1/STARIndex"
+READ_FILE="/n/stat115/2020/HW1/loop"
+
+module load STAR/2.6.0c-fasrc01
+
+STAR --genomeDir $STAR_FILE \
+--readFilesIn $READ_FILE/A_l.fastq $READ_FILE/A_r.fastq \
+--runThreadN 1 --outFileNamePrefix output_star
+
 ```
 
-b. If you are getting a different number of mappable fragments between
-BWA and STAR on the same data, why?
+Running samtools flagstat  on the resulting output_starAligned.out.sam file, there are 5329488 fragments mapped. Running the same unique mapping code as above, there are 1290560 uniquely mapped fragments.
 
+b. If you are getting a different number of mappable fragments between BWA and STAR on the same data, why?
 
 Please provide text answer here.
 
+BWA is not splice aware, which makes a difference if there are introns in the gene.
 
 # Part VII: Dynamic programming with Python
 
@@ -518,6 +569,28 @@ lines of codes.
 
 ```{r engine="python", eval=FALSE}
 # your bash command
+
+numbers = [-2, 1, 7, -4, 5, 2, -3, -6, 4, 3, -8, -1, 6, -7, -9, -5]
+
+maxsum = 0
+maxstart = maxend = 0
+newsum = 0
+
+for end, n in enumerate(numbers):
+    newsum += n
+
+    if n > newsum:
+        start = end
+        newsum = n
+    
+    if newsum > maxsum:
+        maxsum = newsum
+        maxstart = start
+        maxend = end
+
+print("max Z value is from index", maxstart, "to", maxend, ":", maxsum)
+print("subset:", numbers[maxstart:maxend+1])
+
 ```
 
 
