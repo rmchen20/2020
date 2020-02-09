@@ -3,12 +3,12 @@ title: "STAT115 Homework 1"
 author: ''
 date: "January 28, 2020"
 output:
-  pdf_document: default
   html_document: default
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, eval = FALSE)# please knit with `echo=TRUE, eval=TRUE`
+knitr::opts_chunk$set(echo = TRUE, eval = TRUE)# please knit with `echo=TRUE, eval=TRUE`
 ```
 
 
@@ -345,6 +345,9 @@ cat "$FILE_NAME" | wc -l
 grep -c "KRAS" "$FILE_NAME"
 ```
 
+3600964 lines  
+921 times "KRAS" gene appeared
+
 b. How many unique `Variant_Classification` are there in the MAF? Please 
 count occurrence of each type and sort them. Which one is the most frequent? 
 
@@ -355,6 +358,26 @@ cut -f 4 "$FILE_NAME" | sort -u | wc -l
 
 cut -f 4 "$FILE_NAME" | sort | uniq -c | sort -nr
 ```
+
+17 different variant classifications  
+
+1921979 Missense_Mutation  
+782687 Silent  
+282636 3'UTR  
+157232 Nonsense_Mutation  
+108104 Intron  
+87013 Frame_Shift_Del  
+81323 5'UTR  
+50617 Splice_Site  
+49540 RNA  
+27128 Frame_Shift_Ins  
+21060 3'Flank  
+15726 5'Flank  
+10254 In_Frame_Del  
+2723 Translation_Start_Site  
+2042 Nonstop_Mutation  
+ 899 In_Frame_Ins  
+   1 Variant_Classification  
 
 Missense mutations are the most frequent kind of variant classification.
 
@@ -380,10 +403,17 @@ with open('/n/stat115/2020/HW1/public_MC3.maf') as f:
 from collections import Counter
 cc = Counter(lines)
 
-sorted(range(len(cc.values())), key=lambda i: cc.values()[i])[-5:]
+for gene, count in cc.most_common(5):
+    print (gene, ":", count)
 ```
 
 Your text answer:
+
+TTN : 15171  
+MUC16 : 6875  
+TP53 : 4601  
+CSMD3 : 3198  
+SYNE1 : 3102
 
 I would likely pick TTN. TTN has the most variant classifications in our data, which suggests that changes in TTN would be relatively more biologically significant since it is more likely to mutate.
 
@@ -474,15 +504,13 @@ do
 	# count number of uniquely mapped reads
 	samtools view -h ${f}-aln-pe.sam | grep -v -e 'XA:Z:'  -e 'SA:Z:'| samtools view -F 0x900 -f 0x2 -q 5| wc -l
 done
-
-srun --pty -p test -t 45 --mem 6000 /bin/bash submit.sh
 ```
 
 Please provide text answer here.
 
-A: 1900632 mapped, unique: 1028780
-B: 1900322 mapped, unique: 1028085
-C: 1900666 mapped, unique: 1028016
+A: 1900632 mapped, unique: 1028780  
+B: 1900322 mapped, unique: 1028085  
+C: 1900666 mapped, unique: 1028016  
 
 There are 2000026 rows in each of the output SAM files.
 
@@ -546,13 +574,13 @@ STAR --genomeDir $STAR_FILE \
 
 ```
 
-Running samtools flagstat  on the resulting output_starAligned.out.sam file, there are 5329488 fragments mapped. Running the same unique mapping code as above, there are 1290560 uniquely mapped fragments.
+Looking at the "output_starLog.final.out" file, we have 645280 uniquely mapped reads. The total number of mapped reads is 645280 uniquely mapped reads + 296011 reads mapped to multiple loci = 941291 reads.
 
 b. If you are getting a different number of mappable fragments between BWA and STAR on the same data, why?
 
 Please provide text answer here.
 
-BWA is not splice aware, which makes a difference if there are introns in the gene.
+There are fewer mappable fragments from STAR, likely because BWA is not splice aware. Our genome likely has introns, which BWA does not know not to align the reference genome to the introns, resulting in more mappable fragments, which would be ignored and accounted for in STAR.
 
 # Part VII: Dynamic programming with Python
 
@@ -567,7 +595,7 @@ algorithm should look at each number ONLY ONCE from left to right.
 Hint: You can use dynamic programming to solve this problem with <20
 lines of codes.
 
-```{r engine="python", eval=FALSE}
+```{r engine="python", eval=TRUE}
 # your bash command
 
 numbers = [-2, 1, 7, -4, 5, 2, -3, -6, 4, 3, -8, -1, 6, -7, -9, -5]
@@ -593,4 +621,4 @@ print("subset:", numbers[maxstart:maxend+1])
 
 ```
 
-
+The maximum Z value is 11, from index 1 to index 5: [1, 7, -4, 5, 2].
