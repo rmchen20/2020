@@ -13,7 +13,7 @@ knitr::opts_chunk$set(echo = TRUE, eval = TRUE)# please knit with `echo=TRUE, ev
 <br><br>
 
 # Part I: RNA-seq quality control
-For this question, we will examine a series of tools to perform essential quality-control analyses for high-throughput RNA sequencing data. 
+For this question, we will examine a series of tools to perform essential quality-control analyses for high-throughput RNA sequencing data.
 
 ### Problem I.1 (3pts)
 **You are asked by a collaborator to analyze four RNA-seq libraries. She suspects that the libraries are generally of high-quality but is concerned that a sample may have been switched with her benchmates during processing. Execute FastQC, STAR, and RSeQC (tin.py) to determine whether any of the samples exhibit unusual quailty control metrics. Overall, identify the best and worst libraries. Your answer should provide evidence from all three tools. Include screen shots and tables as necessary as if you were delivering a report to the collaborator.**
@@ -35,11 +35,31 @@ Hint: not required but helpful to run STAR with these parameters:
 Student response
 <br>
 
-### Problem I.2 (0.5pt; graduate students only)
+fastqc:
+module load fastqc/0.11.8-fasrc01
 
-**Your collaborator recalls that one of her samples was left on the bench for a couple of days before the full RNA-seq library was processed. Using the metrics from the question above, can you identify this sample? Provide your rationale.**
+# loop over the four libraries
+for f in W X Y Z
+do
+	fastqc run${f}.fastq.gz
+done
 
-Student response
+star:
+STAR_FILE="/n/stat115/2020/HW2/star_hg38_index"
+
+module load STAR/2.6.0c-fasrc01
+
+# loop over the four libraries
+for f in W X Y Z
+do
+	STAR --genomeDir $STAR_FILE \
+	--outSAMtype BAM SortedByCoordinate \
+	--readFilesCommand zcat \
+	--readFilesIn run${f}.fastq \
+	--runThreadN 1 --outFileNamePrefix output_star
+done
+
+rseqc:
 
 -----
 
@@ -68,11 +88,6 @@ e.g. time sleep 2
 
 Student response
 <br>
-
-### Problem II.3 (1pt; graduate students only)
-**Plot the relationship between effective length, normalized read counts, TPM, and FPKM for runX from the Salmon output. Comment on the relative utility of each metric when analyzing gene expression data.** 
-
-Student response
 
 -----
 
@@ -133,11 +148,6 @@ Student response
 Student response
 <br>
 
-### Problem III.6 (1pts; graduate students only)
-**Rerun differential gene expression analyses without accounting for the batch effect. Compare the number of differentially expressed genes and anecdotes of top differentially expressed genes. Are the numbers of differentially expressed genes before/after the batch effect consistent with what you would have expected? Comment on the biological relevance of the top genes.** 
-
-Student response
-
 -----
 
 <br><br>
@@ -155,16 +165,6 @@ Student response
 ### Problem IV.2 (0.5pts)
 
 **Describe in at least 3 but no more than 7 sentences the methodological differences between how approaches like DAVID and approaches like GSEA work in identifying enriched pathways from RNA-seq data.**
-
-Student response
-
-### Problem IV.3 (1pt; graduate students only)
-**Run Gene Set Enrichment analysis (http://www.broadinstitute.org/gsea/index.jsp) using the summary statistics from problem III.3. What are the gene sets or experiments that best capture the differential expression data between these two cell types? Comment on the biological relevance of the results and compare them to the results produced from the DAVID analysis.**
-
-```
-Hint: the fgsea package (https://bioconductor.org/packages/release/bioc/html/fgsea.html)
-is, in my hands, easier to use than the original java distribution of gsea
-```
 
 Student response
 
@@ -194,31 +194,3 @@ In a recent manuscript (published September 2019), Zhou et al. describe a modifi
 Student response
 
 <br>
-
------
-The next questions are for graduate students only. In 3-5 sentences each, answer the following questions related to the short letters that comment on the manuscript.
-
-### Problem VI.2 (0.5 pts; graduate students only)
-**Briefly summarize the Hartl and Gao response (see `2_Hartl_response.pdf`). Specifically, what evidence do Hartl and Gao offer that the interpretation of the original manuscript may be confounded by a batch effect? If you were the bioinformatician analyzing the original data, what steps, if any, could you take to eliminate the batch effect?**
-
-Student response
-
-### Problem VI.3 (0.5 pts; graduate students only)
-**Summarize the response to Hartl (see `3_response_to_Hartl.pdf`). Specifically, how do the original authors argue that there is "a lack of between batch differences"? Do you find their rebuttal convincing?**
-
-Student response
-
-### Problem VI.4 (0.5 pts; graduate students only)
-**Design a modified version of the study that utilizes both proper experimental setup and computational tools discussed in this lab/homework that would ameloirate the potential batch effect in assessing the efficacy of SILVER-seq. Comment specifically on batch design and analytical methods. Assume that you want to test the same number of samples (~130) but no more than 10 samples can be processed per batch.**
-
-Student response
-
-### Problem VI.5 (0.0 pts; graduate students only)
-**After reading the primary manuscript and both responses, how do you interpret the efficacy of SILVER-seq as a tool for cancer diagnostics/prediction? What remaining questions do you think need to be answered before this technology could be confidently used with patients?**
-
-Optional response (feedback will be given but students will not receive points.)
-
-
-**Note:** you can access the raw SILVER-seq data from this study here: https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE131512
-
-<br><br>
