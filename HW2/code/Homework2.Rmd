@@ -36,6 +36,7 @@ Student response
 <br>
 
 fastqc:
+```
 module load fastqc/0.11.8-fasrc01
 
 # loop over the four libraries
@@ -43,8 +44,10 @@ for f in W X Y Z
 do
 	fastqc run${f}.fastq.gz
 done
+```
 
 star:
+```
 STAR_FILE="/n/stat115/2020/HW2/star_hg38_index"
 
 module load STAR/2.6.0c-fasrc01
@@ -58,9 +61,14 @@ do
 	--readFilesIn run${f}.fastq \
 	--runThreadN 1 --outFileNamePrefix output_star
 done
+```
 
 rseqc:
 
+
+![](tile.png) 
+
+![](seq.png) 
 -----
 
 <br><br>
@@ -89,6 +97,33 @@ e.g. time sleep 2
 Student response
 <br>
 
+star:
+library 1: 10:00:29 to 10:06:13
+library 2: 10:06:14 to 10:11:06
+library 3: 10:11:06 to 10:15:54
+library 4: 10:15:55 to 10:23:21
+
+bed=/n/stat115/2020/HW2/hg38_RefSeq.bed
+cp star/ .
+bam=star/output_starWAligned.sortedByCoord.out.bam
+python ~/.conda/envs/python2ev/bin/tin.py -i $bam –r $bed
+
+
+salmon:
+library 1: 10:35:09.017 to 10:40:41.170
+library 2: 10:40:43.594 to 10:46:37.434
+library 3: 10:46:40.102 to 10:52:09.756
+library 4: 10:56:57.899 to 10:58:20.397
+
+module load salmon/0.12.0-fasrc01
+INDEX_FILE="/n/stat115/2020/HW2/salmon_hg38_index"
+DATA_FILE="/n/stat115/2020/HW2/raw_data"
+
+for f in Z
+do
+	salmon quant -i $INDEX_FILE -l A -r $DATA_FILE/run${f}.fastq.gz --validateMappings -o transcripts${f}
+done
+
 -----
 
 <br><br>
@@ -106,6 +141,11 @@ column: <organism>_<tissue>_<batch> sample identifier (e.g. human_adipose_3)
 
 ```{r import_piii, include=TRUE, echo=TRUE, eval = TRUE}
 
+library(stringr)
+library(pheatmap)
+library(ggplot2)
+library(ggrepel)
+
 # Import processed raw counts
 counts <- readRDS("../data/part3_counts.rds")
 
@@ -116,6 +156,28 @@ log2tpm <- sapply(1:dim(counts)[2], function(idx){
 colnames(log2tpm) <- colnames(counts)
 
 # Continue analysis here.
+feat_data <- data.frame(str_split_fixed(colnames(log2tpm), "_", 3))
+colnames(feat_data) <- c("species", "tissue", "batch")
+
+# Look for variable genes
+rowVars <- function(x, ...) {
+  rowSums((x - rowMeans(x, ...))^2, ...)/(dim(x)[2] - 1)
+}
+rv <- rowVars(log2tpm)
+cutoff <- sort(rv, decreasing = TRUE)[5000]
+log2tpm_variable <- log2tpm[rv >= cutoff, ]
+# pheatmap(cor(log2tpm_variable))
+
+#---------------
+# Examine PCA
+#---------------
+feat_data_pca <- data.frame(
+  feat_data,
+  prcomp(log2tpm_variable, scale = TRUE, center = TRUE)$rotation
+)
+
+ggplot(feat_data_pca, aes(x = PC2, y = PC3, shape = batch, color = species)) +
+  geom_point(size= 7) + geom_text_repel(aes(label = tissue), point.padding = 0.5)
 ```
 
 Student response
@@ -125,12 +187,39 @@ Student response
 **Run COMBAT on the samples to remove the batch effect. Visualize the results using a similar principle component analysis as the question above. Provide evidence that the batch effects are successfully adjusted. Do these results change the primary interpretation of the results?**
 
 Student response
+```{r import_piii, include=TRUE, echo=TRUE, eval = TRUE}
+library(sva)
+combat_dat <- ComBat(log2tpm_variable, feat_data_pca$batch, par.prior = TRUE)
+# pheatmap(cor(combat_dat))
+
+# Redo PCA
+feat_data_pca_combat <- data.frame(
+  feat_data,
+  prcomp(combat_dat, scale = TRUE, center = TRUE)$rotation
+)
+
+ggplot(feat_data_pca_combat, aes(x = PC2, y = PC3, shape = batch, color = species)) +
+  geom_point(size= 7) + geom_text_repel(aes(label = tissue), point.padding = 0.5)
+```
 <br>
 
 ### Problem III.3 (1pts)
 **Run DESeq2 adjusting for the batch effect to identify differentially-expressed genes between the lung and adipose tissue. Report the number of statistically-significant genes as well as whether they are more highly expressed in either adipose tissue or lung tissue.**
 
 Student response
+```{r import_piii, include=TRUE, echo=TRUE, eval = TRUE}
+library(DESeq2)
+library(apeglm)
+ddsMat <- DESeqDataSetFromMatrix(countData = counts,
+                                 colData = feat_data,
+                                 design = ~ tissue + batch)
+
+ddsMat <- DESeq(ddsMat)
+rdf <- results(ddsMat, contrast = c("tissue", "adipose", "lung"))
+
+# Count number of DE genes
+sum(rdf$padj < 0.01, na.rm = TRUE)
+```
 <br>
 
 ### Problem III.4 (1pts)
@@ -146,6 +235,12 @@ Student response
 **Visualize the differential gene expression values by making a volcano and an MA plot to summarize the differences between the two tissues. Be sure to use the `lfcShrink` function to get more robust estimates of the fold-changes for genes. **
 
 Student response
+```{r import_piii, include=TRUE, echo=TRUE, eval = TRUE}
+
+# Set up for MA plot
+dds_shrink <- lfcShrink(ddsMat, coef="tissue_lung_vs_adipose", type="apeglm")
+plotMA(dds_shrink, ylim = c(-5, 5))
+```
 <br>
 
 -----
